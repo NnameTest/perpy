@@ -9,6 +9,7 @@ DATA_FILE = "data/asterdex_data.json"
 
 WS_URL = "wss://fstream.asterdex.com/ws/!markPrice@arr"
 FUNDING_URL = "https://fapi.asterdex.com/fapi/v1/fundingInfo"
+INFO_URL = "https://fapi.asterdex.com/fapi/v1/exchangeInfo"
 
 INITIAL_STREAM_START_DELAY = 5             # seconds before starting main loop
 UPDATE_FUNDING_INTERVAL = 60               # seconds between funding updates
@@ -17,7 +18,24 @@ PRINT_INTERVAL = 10                        # seconds between prints
 PING_INTERVAL = 60                         # seconds between pings
 RECONNECT_DELAY = 5                        # seconds before reconnect
 
+ignore_tokens = []
 combined_data = {}
+
+
+async def fill_ignore_tokens_list():
+    """Fetch all symbols and filter out non-trading ones."""
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.get(INFO_URL) as resp:
+                data = await resp.json()
+                for item in data["symbols"]:
+                    if item["status"] != "TRADING":
+                        ignore_tokens.append(item["symbol"])  # remove "USD" suffix
+                print(f"Ignoring {len(ignore_tokens)} symbols")
+                print(ignore_tokens)
+        except Exception as e:
+            print("Error fetching exchange info:", e)
+            return
 
 async def fetch_funding_info():
     """Fetch funding info from REST and update intervals."""
@@ -26,7 +44,7 @@ async def fetch_funding_info():
             async with session.get(FUNDING_URL) as resp:
                 data = await resp.json()
                 for item in data:
-                    if item["symbol"].endswith("USD"):
+                    if item["symbol"].endswith("USD") or item["symbol"] in ignore_tokens:
                         continue
 
                     symbol = item["symbol"][:-4]  # remove "USDT" suffix
@@ -49,7 +67,7 @@ async def process_message(message: str):
     try:
         data = json.loads(message)
         for item in data:
-            if item["s"].endswith("USD"):
+            if item["s"].endswith("USD") or item["s"] in ignore_tokens:
                 continue
 
             symbol = item["s"][:-4]  # remove "USDT" suffix
@@ -92,7 +110,7 @@ async def handle_stream():
     await asyncio.sleep(INITIAL_STREAM_START_DELAY)
     while True:
         try:
-            print("🔌 Connecting to price stream...")
+            print("🔌 Connecting to stream...")
             async with websockets.connect(
                 WS_URL,
                 ping_interval=None,  # we manage manually
@@ -134,6 +152,7 @@ async def monitor_prices():
 
 async def main():
     os.makedirs(os.path.dirname(DATA_FILE) or ".", exist_ok=True)
+    await fill_ignore_tokens_list()
     await fetch_funding_info()  # initial load before stream
     await asyncio.gather(
         periodic_funding_refresh(),

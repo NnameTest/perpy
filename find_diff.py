@@ -25,7 +25,7 @@ for token in common_tokens:
     # Absolute funding rate gap
     funding1 = info1.get("funding_rate", 0) * 24 / info1.get("funding_interval_hours", 1)
     funding2 = info2.get("funding_rate", 0) * 24 / info2.get("funding_interval_hours", 1)
-    funding_gap_24h = abs(funding1 - funding2)
+    funding_gap_24h_pct = abs(funding1 - funding2) * 100
     
     # Save info with diffs
     price_diff_list.append({
@@ -39,12 +39,12 @@ for token in common_tokens:
         "token": token,
         "file1_funding": funding1,
         "file2_funding": funding2,
-        "funding_gap": funding_gap_24h
+        "funding_gap_24h_pct": funding_gap_24h_pct
     })
 
 # Sort lists
 price_diff_list.sort(key=lambda x: x["price_diff_pct"], reverse=True)
-funding_gap_list.sort(key=lambda x: x["funding_gap"], reverse=True)
+funding_gap_list.sort(key=lambda x: x["funding_gap_24h_pct"], reverse=True)
 
 # Write to JSON files
 with open("data/by_price_diff.json", "w") as f:

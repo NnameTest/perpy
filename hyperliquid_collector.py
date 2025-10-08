@@ -7,9 +7,12 @@ import time
 
 DATA_FILE = "data/hyperliquid_data.json"
 
-FUNDING_URL = "https://api.hyperliquid.xyz/info"
-API_POST_MSG = json.dumps({
+INFO_URL = "https://api.hyperliquid.xyz/info"
+FUNDING_API_POST_MSG = json.dumps({
 	"type": "predictedFundings"
+})
+META_API_POST_MSG = json.dumps({
+  "type": "meta"
 })
 
 WS_URL = "wss://api.hyperliquid.xyz/ws"
@@ -27,18 +30,38 @@ PRINT_INTERVAL = 10                        # seconds between prints
 PING_INTERVAL = 60                         # seconds between pings
 RECONNECT_DELAY = 5                        # seconds before reconnect
 
+ignore_tokens = []
 combined_data = {}
+
+async def fill_ignore_tokens_list():
+    """Fetch all symbols and filter not suitible."""
+    async with aiohttp.ClientSession() as session:
+        try:
+            session.headers.update({'Content-Type': 'application/json'})
+            async with session.post(url=INFO_URL, data=META_API_POST_MSG) as resp:
+                data = await resp.json()
+                for item in data["universe"]:
+                    if item.get("isDelisted") == True:
+                        ignore_tokens.append(item["name"])
+                print(f"Ignoring {len(ignore_tokens)} not trading symbols")
+                print(ignore_tokens)
+        except Exception as e:
+            print("Error fetching exchange info:", e)
+            return
 
 async def fetch_funding_info():
     """Fetch funding info from REST and update intervals."""
     async with aiohttp.ClientSession() as session:
         try:
             session.headers.update({'Content-Type': 'application/json'})
-            async with session.post(url=FUNDING_URL, data=API_POST_MSG) as resp:
+            async with session.post(url=INFO_URL, data=FUNDING_API_POST_MSG) as resp:
                 data = await resp.json()
 
                 for item in data:
                     symbol = item[0]
+
+                    if symbol in ignore_tokens:
+                        continue
 
                     symbol_funding_data = [x for x in item[1] if x[0] == "HlPerp"][0][1]
                     funding_rate = float(symbol_funding_data["fundingRate"])
@@ -72,7 +95,7 @@ async def process_message(message: str):
         data = message["data"]["mids"]
 
         for symbol, price in data.items():
-            if "@" in symbol or "/" in symbol:
+            if "@" in symbol or "/" in symbol or symbol in ignore_tokens:
                 continue
 
             combined_data.setdefault(symbol, {}).update({
@@ -112,7 +135,7 @@ async def handle_stream():
     await asyncio.sleep(INITIAL_STREAM_START_DELAY)
     while True:
         try:
-            print("🔌 Connecting to price stream...")
+            print("🔌 Connecting to stream...")
             async with websockets.connect(
                 WS_URL,
                 ping_interval=None,  # we manage manually
@@ -155,6 +178,7 @@ async def monitor_prices():
 
 async def main():
     os.makedirs(os.path.dirname(DATA_FILE) or ".", exist_ok=True)
+    await fill_ignore_tokens_list()
     await fetch_funding_info()  # initial load before stream
     await asyncio.gather(
         periodic_funding_refresh(),
