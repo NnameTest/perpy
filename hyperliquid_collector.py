@@ -5,10 +5,20 @@ import json
 import os
 import time
 
-DATA_FILE = "data/asterdex_markprice.json"
+DATA_FILE = "data/hyperliquid_data.json"
 
-WS_URL = "wss://fstream.asterdex.com/ws/!markPrice@arr"
-FUNDING_URL = "https://fapi.asterdex.com/fapi/v1/fundingInfo"
+FUNDING_URL = "https://api.hyperliquid.xyz/info"
+API_POST_MSG = json.dumps({
+	"type": "predictedFundings"
+})
+
+WS_URL = "wss://api.hyperliquid.xyz/ws"
+WS_POST_MSG = {
+  "method": "subscribe",
+  "subscription": {
+    "type": "allMids"
+  }
+}
 
 INITIAL_STREAM_START_DELAY = 5             # seconds before starting main loop
 UPDATE_FUNDING_INTERVAL = 60               # seconds between funding updates
@@ -23,16 +33,23 @@ async def fetch_funding_info():
     """Fetch funding info from REST and update intervals."""
     async with aiohttp.ClientSession() as session:
         try:
-            async with session.get(FUNDING_URL) as resp:
+            session.headers.update({'Content-Type': 'application/json'})
+            async with session.post(url=FUNDING_URL, data=API_POST_MSG) as resp:
                 data = await resp.json()
-                for item in data:
-                    if item["symbol"].endswith("USD"):
-                        continue
 
-                    symbol = item["symbol"][:-4]  # remove "USDT" suffix
+                for item in data:
+                    symbol = item[0]
+
+                    symbol_funding_data = [x for x in item[1] if x[0] == "HlPerp"][0][1]
+                    funding_rate = float(symbol_funding_data["fundingRate"])
+                    next_funding_time = symbol_funding_data["nextFundingTime"]
+                    funding_interval_hours = symbol_funding_data["fundingIntervalHours"]
+
                     combined_data.setdefault(symbol, {})
                     combined_data[symbol].update({
-                        "funding_interval_hours": item.get("fundingIntervalHours"),
+                        "funding_rate": funding_rate,
+                        "next_funding_time": next_funding_time,
+                        "funding_interval_hours": funding_interval_hours,
                     })
                 print(f"Funding info updated")
         except Exception as e:
@@ -47,16 +64,19 @@ async def periodic_funding_refresh():
 async def process_message(message: str):
     """Parse mark price updates and save to disk immediately."""
     try:
-        data = json.loads(message)
-        for item in data:
-            if item["s"].endswith("USD"):
+        message = json.loads(message)
+
+        if message["channel"] != "allMids":
+            return
+
+        data = message["data"]["mids"]
+
+        for symbol, price in data.items():
+            if "@" in symbol or "/" in symbol:
                 continue
 
-            symbol = item["s"][:-4]  # remove "USDT" suffix
             combined_data.setdefault(symbol, {}).update({
-                "price": float(item["p"]),
-                "funding_rate": float(item["r"]),
-                "next_funding_time": item["T"],  # ms since epoch
+                "price": float(price),
             })
 
     except Exception as e:
@@ -99,6 +119,7 @@ async def handle_stream():
                 max_size=2**20,
             ) as ws:
                 print("✅ Connected to stream")
+                await ws.send(json.dumps(WS_POST_MSG))
 
                 ping_task = asyncio.create_task(ping_loop(ws))
 
