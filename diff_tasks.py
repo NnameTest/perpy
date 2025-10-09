@@ -87,7 +87,7 @@ def find_funding_24h_rate_diff(data, min_diff_pct=0.1):
             normalized_rate = rate * (24 / interval)
             rates_24h[feed_name] = normalized_rate
 
-        if len(rates_24h) < 2:
+        if len(rates_24h.keys()) < 2:
             continue
 
         min_feed = min(rates_24h, key=rates_24h.get)
@@ -148,7 +148,7 @@ def find_next_funding_rate_diff(feeds_data, time_tolerance_minutes=5, threshold_
                     "interval": t["funding_interval_hours"]
                 })
 
-        if not token_entries:
+        if len(token_entries) < 2:
             continue
 
         # Find the nearest upcoming funding time

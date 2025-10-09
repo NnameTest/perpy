@@ -19,18 +19,6 @@ async def monitor_prices(state):
         await asyncio.sleep(PRINT_INTERVAL)
         print(f"🕒 {time.strftime('%Y-%m-%d %H:%M:%S')}")
         print(json.dumps(state, indent=2))
-        # if state:
-        #     sample = list(state.items())
-        #     print("\n📊 Live sample:")
-        #     for sym, d in sample:
-        #         next_funding = time.strftime(
-        #             "%H:%M:%S", time.localtime(d["next_funding_time"] / 1000)
-        #         )
-        #         print(
-        #             f"{sym:<15} {d['price']:<15.4f} "
-        #             f"funding_rate={d['funding_rate']:<15.6f} "
-        #             f"next={next_funding:<15} interval={d.get('funding_interval_hours','?')}h"
-        #         )
 
 async def save_snapshot(state):
     """Periodic redundant save in case of missed flush."""
@@ -101,9 +89,9 @@ async def main():
     await asyncio.gather(
         asterdex_feed(state[asterdex_state_key]),
         hyperliquid_feed(state[hyperliquid_state_key]),
-        monitor_prices_diff(state, min_price_diff_pct=0.1),
-        monitor_next_funding_rate_diff(state, time_tolerance_minutes=5, threshold_percent=0.01),
-        monitor_24h_funding_rate_diff(state, threshold_percent=0.1),
+        monitor_prices_diff(state, min_price_diff_pct=1),
+        monitor_next_funding_rate_diff(state, time_tolerance_minutes=5, threshold_percent=0.1),
+        monitor_24h_funding_rate_diff(state, threshold_percent=0.5),
         # monitor_prices(state),
         # save_snapshot(state),
     )
