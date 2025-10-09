@@ -1,11 +1,16 @@
 # alert_cache.py
+import os
 import time
+
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Dictionary: key = alert identifier, value = timestamp when sent
 _recent_alerts = {}
 
-ALERT_COOLDOWN = 30 * 60  # 30 minutes in seconds
-
+ALERT_COOLDOWN_MINUTES = os.getenv("ALERT_COOLDOWN_MINUTES", 30)
+ALERT_COOLDOWN = ALERT_COOLDOWN_MINUTES * 60  # 30 minutes in seconds
 
 def _make_key(category, data):
     """Combine category + data to make a unique cache key."""
