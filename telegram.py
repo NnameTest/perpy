@@ -7,6 +7,8 @@ import asyncio
 
 from dotenv import load_dotenv
 
+from alert_cache import should_send_alert
+
 # Load environment variables from .env
 load_dotenv()
 
@@ -60,9 +62,10 @@ def format_price_diff_message(data):
 async def send_price_diff_telegram_message(data):
     """Send formatted Telegram alerts for all results."""
     for item in data:
-        msg = format_price_diff_message(item)
-        await send_telegram_message(msg)
-        await asyncio.sleep(0.2) 
+        if should_send_alert("price_diff", item):
+          msg = format_price_diff_message(item)
+          await send_telegram_message(msg)
+          await asyncio.sleep(0.2) 
 
 def format_24h_funding_rate_diff_message(data):
     token = data["token"]
@@ -93,9 +96,10 @@ def format_24h_funding_rate_diff_message(data):
 async def send_24h_funding_rate_diff_notifications(data):
     """Send formatted Telegram alerts for funding rate diffs."""
     for item in data:
-        msg = format_24h_funding_rate_diff_message(item)
-        await send_telegram_message(msg)
-        await asyncio.sleep(0.2)
+        if should_send_alert("funding_24h_diff", item):
+          msg = format_24h_funding_rate_diff_message(item)
+          await send_telegram_message(msg)
+          await asyncio.sleep(0.2)
 
 def format_next_funding_diff_message(data):
     token = data["token"]
@@ -125,6 +129,7 @@ def format_next_funding_diff_message(data):
 async def send_next_funding_diff_notifications(data):
     """Send formatted Telegram alerts for next funding rate differences."""
     for item in data:
-        msg = format_next_funding_diff_message(item)
-        await send_telegram_message(msg)
-        await asyncio.sleep(0.2)  # avoid flooding Telegram
+        if should_send_alert("funding_next_diff", item):
+          msg = format_next_funding_diff_message(item)
+          await send_telegram_message(msg)
+          await asyncio.sleep(0.2)  # avoid flooding Telegram
