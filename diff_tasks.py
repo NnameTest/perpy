@@ -1,6 +1,6 @@
 import time
 
-def find_price_diff_task(data, min_diff_pct=0.1):
+def find_price_diff_task(data, threshold_percent=0.1):
     """
     Compare token prices across multiple feeds and return sorted differences.
     
@@ -35,7 +35,7 @@ def find_price_diff_task(data, min_diff_pct=0.1):
         rel_diff = diff / min_price * 100 if min_price != 0 else 0
 
         # skip if below threshold
-        if rel_diff < min_diff_pct:
+        if rel_diff < threshold_percent:
             continue
 
         results.append({
@@ -83,7 +83,6 @@ def find_funding_24h_rate_diff(data, min_diff_pct=0.1):
             if rate is None or not interval:
                 continue
 
-            # normalize: multiply by (24 / interval)
             normalized_rate = rate * (24 / interval)
             rates_24h[feed_name] = normalized_rate
 
@@ -116,7 +115,7 @@ def find_funding_24h_rate_diff(data, min_diff_pct=0.1):
     results.sort(key=lambda x: abs(x["diff_pct"]), reverse=True)
     return results
 
-def find_next_funding_rate_diff(feeds_data, time_tolerance_minutes=5, threshold_percent=0):
+def find_next_funding_rate_diff(feeds_data, threshold_percent=0, time_tolerance_minutes=1):
     """
     Find tokens with the highest funding rate gaps for the nearest upcoming funding window.
 
