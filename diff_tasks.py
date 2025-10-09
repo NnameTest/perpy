@@ -45,12 +45,12 @@ def find_price_diff_task(data, threshold_percent=0.1):
             "min_price": min_price,
             "max_price": max_price,
             "abs_diff": diff,
-            "rel_diff_pct": rel_diff,
+            "diff_pct": rel_diff,
             "all_prices": prices,
         })
 
     # sort by relative difference (descending)
-    results.sort(key=lambda x: x["rel_diff_pct"], reverse=True)
+    results.sort(key=lambda x: x["diff_pct"], reverse=True)
     return results
 
 def find_funding_24h_rate_diff(data, min_diff_pct=0.1):
