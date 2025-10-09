@@ -9,7 +9,7 @@ load_dotenv()
 # Dictionary: key = alert identifier, value = timestamp when sent
 _recent_alerts = {}
 
-ALERT_COOLDOWN_MINUTES = os.getenv("ALERT_COOLDOWN_MINUTES", 30)
+ALERT_COOLDOWN_MINUTES = int(os.getenv("ALERT_COOLDOWN_MINUTES", 30))
 ALERT_COOLDOWN = ALERT_COOLDOWN_MINUTES * 60  # 30 minutes in seconds
 
 def _make_key(category, data):
