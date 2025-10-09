@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from asterdex_feed import asterdex_feed
 from hyperliquid_feed import hyperliquid_feed
 from diff_tasks import find_price_diff_task, find_funding_24h_rate_diff, find_next_funding_rate_diff
-from telegram import send_telegram_message
+from telegram import send_price_diff_telegram_message, send_next_funding_diff_notifications, send_24h_funding_rate_diff_notifications
 
 load_dotenv()
 
@@ -32,8 +32,7 @@ async def monitor_prices_diff(state, threshold_percent):
         if tokens_with_diff:
             print(f"📊 Tokens with >{threshold_percent}% price difference:")
             print(json.dumps(tokens_with_diff, indent=2))
-            message = f"📊 Tokens with >{threshold_percent}% price difference:\n" + json.dumps(tokens_with_diff, indent=2)
-            await send_telegram_message(message)
+            await send_price_diff_telegram_message(tokens_with_diff)
         else:
             print(f"📊 No tokens with >{threshold_percent}% price difference found.")
 
@@ -49,8 +48,7 @@ async def monitor_next_funding_rate_diff(state, threshold_percent=0.1):
         if tokens_with_diff:
             print(f"📊 Tokens with >{threshold_percent}% next funding rate difference:")
             print(json.dumps(tokens_with_diff, indent=2))
-            message = f"📊 Tokens with >{threshold_percent}% next funding rate difference:\n" + json.dumps(tokens_with_diff, indent=2)
-            await send_telegram_message(message)
+            await send_next_funding_diff_notifications(tokens_with_diff)
         else:
             print(f"📊 No tokens with >{threshold_percent}% next funding rate difference found.")
 
@@ -66,8 +64,7 @@ async def monitor_24h_funding_rate_diff(state, threshold_percent=0.1):
         if tokens_with_diff:
             print(f"📊 Tokens with >{threshold_percent}% 24h funding rate difference:")
             print(json.dumps(tokens_with_diff, indent=2))
-            message = f"📊 Tokens with >{threshold_percent}% 24h funding rate difference:\n" + json.dumps(tokens_with_diff, indent=2)
-            await send_telegram_message(message)
+            await send_24h_funding_rate_diff_notifications(tokens_with_diff)
         else:
             print(f"📊 No tokens with >{threshold_percent}% 24h funding rate difference found.")
 
