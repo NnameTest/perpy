@@ -1,4 +1,5 @@
 import time
+import numpy as np
 
 
 def find_price_diff_task(data: dict, threshold_percent: float = 0.1):
@@ -99,53 +100,64 @@ def find_funding_24h_rate_diff(data: dict, min_diff_pct: float = 0.1):
     return sorted(results, key=lambda x: abs(x["diff_pct"]), reverse=True)
 
 
-def find_next_funding_rate_diff(feeds_data: dict, threshold_percent: float = 0, time_tolerance_minutes: int = 1):
+import numpy as np
+import time
+
+def find_next_funding_rate_diff(feeds_data, threshold_percent=0, time_tolerance_minutes=1):
     """
     Find tokens with the highest funding rate gaps for the nearest upcoming funding window.
 
-    Logic:
-    - Group feeds that have upcoming funding events within a small time window.
-    - Include even one-sided feeds if they match the nearest time.
-    - Funding gap = abs(max_rate - min_rate)
-    - Filters small differences below threshold_percent (%)
-    - Adds time_until_funding_hours for live timing insight.
+    - If some feeds have later funding times, their rate is treated as 0 for the nearest window.
+    - Keeps same output shape + adds `min_feed` and `max_feed` for clarity.
     """
-    now_ms = int(time.time() * 1000)
     diffs = []
-
-    all_tokens = {token for f in feeds_data.values() for token in f.keys()}
+    feeds = list(feeds_data.keys())
+    all_tokens = set().union(*(feeds_data[f].keys() for f in feeds))
+    now_ms = int(time.time() * 1000)
+    tolerance_ms = time_tolerance_minutes * 60 * 1000
 
     for token in all_tokens:
-        # Collect all available funding data across feeds
-        entries = [
-            {
-                "feed": f,
-                "time": t["next_funding_time"],
-                "rate": t["funding_rate"],
-                "interval": t["funding_interval_hours"],
-            }
-            for f, fd in feeds_data.items()
-            if (t := fd.get(token))
-            and {"next_funding_time", "funding_rate", "funding_interval_hours"} <= t.keys()
-        ]
+        token_entries = []
+        for f in feeds:
+            t = feeds_data[f].get(token)
+            if not t:
+                continue
+            if all(k in t for k in ("funding_interval_hours", "next_funding_time", "funding_rate")):
+                token_entries.append({
+                    "feed": f,
+                    "time": t["next_funding_time"],
+                    "rate": t["funding_rate"],
+                    "interval": t["funding_interval_hours"]
+                })
 
-        if len(entries) < 2:
+        if len(token_entries) < 2:
             continue
 
-        nearest_time = min(e["time"] for e in entries)
+        feeds_arr = np.array([e["feed"] for e in token_entries])
+        times_arr = np.array([e["time"] for e in token_entries], dtype=np.int64)
+        rates_arr = np.array([e["rate"] for e in token_entries], dtype=float)
 
-        # Group entries close to that nearest time
-        nearest_group = [
-            e for e in entries
-            if abs(e["time"] - nearest_time) <= time_tolerance_minutes * 60 * 1000
-        ]
+        nearest_time = np.min(times_arr)
+        time_mask = np.abs(times_arr - nearest_time) <= tolerance_ms
 
-        if not nearest_group:
-            continue
+        # Feeds funding soon
+        nearest_group = [token_entries[i] for i in np.where(time_mask)[0]]
 
-        rates = [e["rate"] for e in nearest_group]
-        max_rate, min_rate = max(rates), min(rates)
-        diff = max_rate - min_rate if len(nearest_group) > 1 else max_rate
+        # Feeds funding later → treat as 0 rate for this upcoming event
+        later_rates = np.zeros(np.sum(~time_mask))
+
+        effective_rates = np.concatenate([rates_arr[time_mask], later_rates])
+        effective_feeds = np.concatenate([feeds_arr[time_mask], feeds_arr[~time_mask]])
+
+        max_idx = np.argmax(effective_rates)
+        min_idx = np.argmin(effective_rates)
+
+        max_rate = float(effective_rates[max_idx])
+        min_rate = float(effective_rates[min_idx])
+        max_feed = str(effective_feeds[max_idx])
+        min_feed = str(effective_feeds[min_idx])
+
+        diff = max_rate - min_rate
         diff_pct = abs(diff) * 100
         time_until_funding_hours = (nearest_time - now_ms) / (1000 * 60 * 60)
 
@@ -154,14 +166,16 @@ def find_next_funding_rate_diff(feeds_data: dict, threshold_percent: float = 0, 
 
         diffs.append({
             "token": token,
-            "feeds": [e["feed"] for e in nearest_group],
-            "nearest_funding_time": nearest_time,
-            "time_until_funding_hours": round(time_until_funding_hours, 2),
-            "funding_rate_diff": diff,
-            "funding_rate_diff_percent": diff_pct,
-            "max_rate": max_rate,
-            "min_rate": min_rate,
-            "count_feeds": len(nearest_group),
+            "feeds": effective_feeds.tolist(),
+            "nearest_funding_time": int(nearest_time),
+            "time_until_funding_hours": round(float(time_until_funding_hours), 2),
+            "funding_rate_diff": float(diff),
+            "funding_rate_diff_percent": float(diff_pct),
+            "max_rate": float(max_rate),
+            "min_rate": float(min_rate),
+            "max_feed": max_feed,
+            "min_feed": min_feed,
+            "count_feeds": len(effective_feeds)
         })
 
     return sorted(diffs, key=lambda x: x["funding_rate_diff_percent"], reverse=True)
