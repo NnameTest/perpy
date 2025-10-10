@@ -57,7 +57,7 @@ async def process_message(ws, message, state):
                 next_funding_time = int((datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)).timestamp()*1000)
 
                 state.setdefault(symbol, {}).update({
-                    "price": float(item.get("mark_price")),
+                    "price": float(item.get("last_traded_price")),
                     "funding_rate": float(item.get("current_funding_rate"))/100,
                     "next_funding_time": next_funding_time,
                     "funding_interval_hours": funding_interval_hours,
