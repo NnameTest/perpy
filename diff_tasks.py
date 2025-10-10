@@ -139,7 +139,7 @@ def find_next_funding_rate_diff(feeds_data, threshold_percent=0, time_tolerance_
             t = feeds_data[f].get(token)
             if not t:
                 continue
-            if "next_funding_time" in t and "funding_rate" in t:
+            if "funding_interval_hours" in t and "next_funding_time" in t and "funding_rate" in t:
                 token_entries.append({
                     "feed": f,
                     "time": t["next_funding_time"],
