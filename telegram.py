@@ -39,7 +39,7 @@ def format_price_diff_message(data):
     max_feed = data["max_feed"]
     min_price = data["min_price"]
     max_price = data["max_price"]
-    abs_diff = data["abs_diff"]
+    diff = data["diff"]
     diff_pct = data["diff_pct"]
     all_prices = data["all_prices"]
 
@@ -53,7 +53,7 @@ def format_price_diff_message(data):
         f"💎 *Token:* `{token}`\n"
         f"🔺 *Max Feed:* {max_feed} — *{max_price:.4f}*\n"
         f"🔻 *Min Feed:* {min_feed} — *{min_price:.4f}*\n"
-        f"📈 *Diff:* `${abs_diff:.4f}` (*{diff_pct:.2f}%*)\n\n"
+        f"📈 *Diff:* `${diff:.4f}` (*{diff_pct:.2f}%*)\n\n"
         f"💬 *All Prices:*\n{prices_str}"
     )
 
