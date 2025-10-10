@@ -15,7 +15,7 @@ ALERT_COOLDOWN = ALERT_COOLDOWN_MINUTES * 60  # 30 minutes in seconds
 def _make_key(category, data):
     """Combine category + data to make a unique cache key."""
     if category == "funding_next_diff":
-        return f"{category}:{data['token']}:{", ".join(data["feeds"])}:{data['nearest_funding_time']}"
+        return f"{category}:{data['token']}:{', '.join(data['feeds'])}:{data['nearest_funding_time']}"
     return f"{category}:{data['token']}:{data['max_feed']}:{data['min_feed']}"
 
 
