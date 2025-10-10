@@ -118,9 +118,9 @@ def format_next_funding_diff_message(data):
         f"📝 *Feeds:* {feeds} ({count_feeds})\n"
         f"⏰ *Next Time:* {nearest_time.strftime('%Y-%m-%d %H:%M:%S')} UTC\n"
         f"⏳ *Time Until Funding:* {time_until:.2f}h\n"
-        f"🔺 Max Rate: {max_rate*100:.4f}%"
-        f"🔻 Min Rate: {min_rate*100:.4f}%"
-        f"📊 *Funding Rate Diff:* {funding_diff*100:.4f}% ({funding_diff_pct:.2f}%)\n"
+        f"🔺 Max Rate: {max_rate*100:.4f}%\n"
+        f"🔻 Min Rate: {min_rate*100:.4f}%\n"
+        f"📊 *Funding Rate Diff:* {funding_diff*100:.4f}% ({funding_diff_pct:.2f}%)"
     )
 
     return msg
