@@ -58,7 +58,7 @@ async def process_message(ws, message, state):
 
                 state.setdefault(symbol, {}).update({
                     "price": float(item.get("mark_price")),
-                    "funding_rate": float(item.get("current_funding_rate")),
+                    "funding_rate": float(item.get("current_funding_rate"))/100,
                     "next_funding_time": next_funding_time,
                     "funding_interval_hours": funding_interval_hours,
                 })
