@@ -10,8 +10,8 @@ from asterdex_feed import asterdex_feed
 from hyperliquid_feed import hyperliquid_feed
 from lighter_feed import lighter_feed
 from edgex_feed import edgex_feed
-from diff_tasks import find_price_diff_task, find_funding_24h_rate_diff, find_next_funding_rate_diff
-from telegram import send_price_diff_telegram_message, send_next_funding_diff_notifications, send_24h_funding_rate_diff_notifications
+from diffs import find_funding_diff_table, find_price_diff_table, print_diff_table
+from telegram import send_detailed_diff_telegram_message
 
 load_dotenv()
 
@@ -19,7 +19,6 @@ START_DELAY=int(os.getenv("START_DELAY"))
 PRINT_INTERVAL=int(os.getenv("PRINT_INTERVAL"))
 PRICE_DIFF_PERCENTAGE_THRESHOLD=float(os.getenv("PRICE_DIFF_PERCENTAGE_THRESHOLD"))
 FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD=float(os.getenv("FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD"))
-FUNDING_NEXT_DIFF_PERCENTAGE_THRESHOLD=float(os.getenv("FUNDING_NEXT_DIFF_PERCENTAGE_THRESHOLD"))
 FUNDING_NEXT_TIME_TOLERANCE_MINUTES=float(os.getenv("FUNDING_NEXT_TIME_TOLERANCE_MINUTES"))
 
 async def monitor_prices_diff(state, threshold_percent):
@@ -30,29 +29,13 @@ async def monitor_prices_diff(state, threshold_percent):
         await asyncio.sleep(PRINT_INTERVAL)
         print(f"\n🕒 {time.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Checking for tokens with >{threshold_percent}% price difference...")
-        tokens_with_diff = find_price_diff_task(state, threshold_percent)
+        tokens_with_diff = find_price_diff_table(state, threshold_percent)
         if tokens_with_diff:
             print(f"📊 Tokens with >{threshold_percent}% price difference:")
-            print(json.dumps(tokens_with_diff, indent=2))
-            await send_price_diff_telegram_message(tokens_with_diff)
+            print_diff_table(tokens_with_diff)
+            await send_detailed_diff_telegram_message(tokens_with_diff)
         else:
             print(f"📊 No tokens with >{threshold_percent}% price difference found.")
-
-async def monitor_next_funding_rate_diff(state, threshold_percent=0.1):
-    """Print tokens with significant next funding rate differences periodically."""
-    await asyncio.sleep(START_DELAY)
-
-    while True:
-        await asyncio.sleep(PRINT_INTERVAL)
-        print(f"\n🕒 {time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print(f"Checking for tokens with >{threshold_percent}% next funding rate difference...")
-        tokens_with_diff = find_next_funding_rate_diff(state, threshold_percent)
-        if tokens_with_diff:
-            print(f"📊 Tokens with >{threshold_percent}% next funding rate difference:")
-            print(json.dumps(tokens_with_diff, indent=2))
-            await send_next_funding_diff_notifications(tokens_with_diff)
-        else:
-            print(f"📊 No tokens with >{threshold_percent}% next funding rate difference found.")
 
 async def monitor_24h_funding_rate_diff(state, threshold_percent=0.1):
     """Print tokens with significant 24h funding rate differences periodically."""
@@ -62,11 +45,11 @@ async def monitor_24h_funding_rate_diff(state, threshold_percent=0.1):
         await asyncio.sleep(PRINT_INTERVAL)
         print(f"\n🕒 {time.strftime('%Y-%m-%d %H:%M:%S')}")
         print(f"Checking for tokens with >{threshold_percent}% 24h funding rate difference...")
-        tokens_with_diff = find_funding_24h_rate_diff(state, threshold_percent)
+        tokens_with_diff = find_funding_diff_table(state, threshold_percent)
         if tokens_with_diff:
             print(f"📊 Tokens with >{threshold_percent}% 24h funding rate difference:")
-            print(json.dumps(tokens_with_diff, indent=2))
-            await send_24h_funding_rate_diff_notifications(tokens_with_diff)
+            print_diff_table(tokens_with_diff)
+            await send_detailed_diff_telegram_message(tokens_with_diff)
         else:
             print(f"📊 No tokens with >{threshold_percent}% 24h funding rate difference found.")
 
@@ -75,12 +58,11 @@ async def main():
     state = defaultdict(dict)
 
     await asyncio.gather(
-        asterdex_feed(state["asterdex"]),
-        hyperliquid_feed(state["hyperliquid"]),
+        asterdex_feed(state["aster"]),
+        hyperliquid_feed(state["hl"]),
         lighter_feed(state["lighter"]),
         edgex_feed(state["edgex"]),
         monitor_prices_diff(state, threshold_percent=PRICE_DIFF_PERCENTAGE_THRESHOLD),
-        monitor_next_funding_rate_diff(state, threshold_percent=FUNDING_NEXT_DIFF_PERCENTAGE_THRESHOLD),
         monitor_24h_funding_rate_diff(state, threshold_percent=FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD),
     )
 

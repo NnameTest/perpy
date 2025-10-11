@@ -1,4 +1,3 @@
-# alert_cache.py
 import os
 import time
 
@@ -6,22 +5,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Dictionary: key = alert identifier, value = timestamp when sent
 _recent_alerts = {}
 
 ALERT_COOLDOWN_MINUTES = int(os.getenv("ALERT_COOLDOWN_MINUTES", 30))
-ALERT_COOLDOWN = ALERT_COOLDOWN_MINUTES * 60  # 30 minutes in seconds
+ALERT_COOLDOWN = ALERT_COOLDOWN_MINUTES * 60
 
-def _make_key(category, data):
-    """Combine category + data to make a unique cache key."""
-    if category == "funding_next_diff":
-        return f"{category}:{data['token']}:{', '.join(data['feeds'])}:{data['nearest_funding_time']}"
-    return f"{category}:{data['token']}:{data['max_feed']}:{data['min_feed']}"
+def _make_key(data):
+    return f"{data['token']}:{data['sortBy']}:{data['feeds'][0]['feed']}:{data['feeds'][-1]['feed']}"
 
 
-def should_send_alert(category, data) -> bool:
-    """Return True if alert can be sent (not throttled)."""
-    key = _make_key(category, data)
+def should_send_alert(data):
+    key = _make_key(data)
     now = time.time()
     last_sent = _recent_alerts.get(key)
 
