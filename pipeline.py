@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from asterdex_feed import asterdex_feed
 from hyperliquid_feed import hyperliquid_feed
 from lighter_feed import lighter_feed
+from edgex_feed import edgex_feed
 from diff_tasks import find_price_diff_task, find_funding_24h_rate_diff, find_next_funding_rate_diff
 from telegram import send_price_diff_telegram_message, send_next_funding_diff_notifications, send_24h_funding_rate_diff_notifications
 
@@ -77,6 +78,7 @@ async def main():
         asterdex_feed(state["asterdex"]),
         hyperliquid_feed(state["hyperliquid"]),
         lighter_feed(state["lighter"]),
+        edgex_feed(state["edgex"]),
         monitor_prices_diff(state, threshold_percent=PRICE_DIFF_PERCENTAGE_THRESHOLD),
         monitor_next_funding_rate_diff(state, threshold_percent=FUNDING_NEXT_DIFF_PERCENTAGE_THRESHOLD),
         monitor_24h_funding_rate_diff(state, threshold_percent=FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD),

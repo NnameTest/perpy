@@ -23,7 +23,7 @@ async def check_exchange_health(state):
         async with aiohttp.ClientSession() as session:
             async with session.get(url=INFO_URL) as resp:
                 if resp.status != 200:
-                    print(f"{PRINT_PREFIX}⚠️ Health check failed, status: {resp.status}")
+                    print(f"{PRINT_PREFIX}❌ Health check failed, status: {resp.status}")
                     is_feed_available = False
                     state.clear()
                     return
@@ -32,10 +32,10 @@ async def check_exchange_health(state):
                 
                 if "serverTime" in data and data["serverTime"] > 0:
                     if not is_feed_available:
-                        print(f"{PRINT_PREFIX}✅ Exchange feed recovered.")
+                        print(f"{PRINT_PREFIX}✅ Exchange is alive.")
                     is_feed_available = True
                 else:
-                    print(f"{PRINT_PREFIX}⚠️ Health check returned unexpected format.")
+                    print(f"{PRINT_PREFIX}❌ Health check returned unexpected format.")
                     is_feed_available = False
                     state.clear()
     except Exception as e:

@@ -13,12 +13,12 @@ META_API_POST_MSG = json.dumps({
 })
 
 WS_URL = "wss://api.hyperliquid.xyz/ws"
-WS_POST_MSG = {
+WS_POST_MSG = json.dumps({
   "method": "subscribe",
   "subscription": {
     "type": "allMids"
   }
-}
+})
 
 INITIAL_STREAM_START_DELAY = 30            # seconds before starting main loop
 UPDATE_DATA_INTERVAL = 60                  # seconds between data updates
@@ -45,7 +45,7 @@ async def check_exchange_health(state):
                 
                 if "time" in data and data["time"] > 0:
                     if not is_feed_available:
-                        print(f"{PRINT_PREFIX}✅ Exchange feed recovered.")
+                        print(f"{PRINT_PREFIX}✅ Exchange feed is alive.")
                     is_feed_available = True
                 else:
                     print(f"{PRINT_PREFIX}❌ Health check returned unexpected format.")
@@ -132,7 +132,7 @@ async def handle_stream(state):
             async with websockets.connect(
                 WS_URL,
             ) as ws:
-                await ws.send(json.dumps(WS_POST_MSG))
+                await ws.send(WS_POST_MSG)
                 async for message in ws:
                     # Skip processing if feed marked unavailable
                     if not is_feed_available:
