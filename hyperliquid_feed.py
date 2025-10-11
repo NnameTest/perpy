@@ -20,7 +20,6 @@ WS_POST_MSG = {
 INITIAL_STREAM_START_DELAY = 5             # seconds before starting main loop
 UPDATE_FUNDING_INTERVAL = 60               # seconds between funding updates
 PRINT_INTERVAL = 10                        # seconds between prints
-PING_INTERVAL = 60                         # seconds between pings
 RECONNECT_DELAY = 5                        # seconds before reconnect
 
 ignore_tokens = []
@@ -77,34 +76,16 @@ async def process_message(message: str, state):
     """Parse mark price updates and save to disk immediately."""
     try:
         message = json.loads(message)
-
-        if message["channel"] != "allMids":
-            return
-
-        data = message["data"]["mids"]
-
-        for symbol, price in data.items():
-            if "@" in symbol or "/" in symbol or symbol in ignore_tokens:
-                continue
-
-            state.setdefault(symbol, {}).update({
-                "price": float(price),
-            })
-
+        if message["channel"] == "allMids":
+          data = message["data"]["mids"]
+          for symbol, price in data.items():
+              if "@" in symbol or "/" in symbol or symbol in ignore_tokens:
+                  continue
+              state.setdefault(symbol, {}).update({
+                  "price": float(price),
+              })
     except Exception as e:
         print(f"⚠️ Failed to parse message: {e}")
-
-
-async def ping_loop(ws):
-    """Send manual pings every minute to keep connection alive."""
-    while True:
-        try:
-            await asyncio.sleep(PING_INTERVAL)
-            await ws.ping()
-        except Exception as e:
-            print(f"⚠️ Ping failed: {e}")
-            break
-
 
 async def handle_stream(state):
     """Main WebSocket connection handler with reconnect logic."""
@@ -114,22 +95,14 @@ async def handle_stream(state):
             async with websockets.connect(
                 WS_URL,
                 ping_interval=None,  # we manage manually
-                max_size=2**20,
             ) as ws:
                 await ws.send(json.dumps(WS_POST_MSG))
-
-                ping_task = asyncio.create_task(ping_loop(ws))
-
                 async for message in ws:
                     await process_message(message, state)
-
         except Exception as e:
             print(f"❌ Connection error: {e}")
             print(f"Reconnecting in {RECONNECT_DELAY}s...")
             await asyncio.sleep(RECONNECT_DELAY)
-        finally:
-            if 'ping_task' in locals():
-                ping_task.cancel()
 
 
 async def hyperliquid_feed(state):

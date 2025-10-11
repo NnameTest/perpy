@@ -2,7 +2,9 @@ import asyncio
 import aiohttp
 import websockets
 import json
+from datetime import datetime
 
+# WS_URL = "wss://fstream.asterdex.com/ws"
 WS_URL = "wss://fstream.asterdex.com/ws/!markPrice@arr"
 FUNDING_URL = "https://fapi.asterdex.com/fapi/v1/fundingInfo"
 INFO_URL = "https://fapi.asterdex.com/fapi/v1/exchangeInfo"
@@ -11,7 +13,7 @@ INITIAL_STREAM_START_DELAY = 5             # seconds before starting main loop
 INITIAL_PRINT_DELAY = 15                    # seconds before first print
 UPDATE_FUNDING_INTERVAL = 60               # seconds between funding updates
 PRINT_INTERVAL = 10                        # seconds between prints
-PING_INTERVAL = 60                         # seconds between pings
+PONG_INTERVAL = 30                         # seconds between pings
 RECONNECT_DELAY = 5                        # seconds before reconnect
 
 ignore_tokens = []
@@ -58,29 +60,30 @@ async def process_message(message: str, state):
     """Parse mark price updates and save to disk immediately."""
     try:
         data = json.loads(message)
-        for item in data:
-            if item["s"].endswith("USD") or item["s"] in ignore_tokens:
-                continue
+        if isinstance(data, list):
+          for item in data:
+              if item["s"].endswith("USD") or item["s"] in ignore_tokens:
+                  continue
 
-            symbol = item["s"][:-4]  # remove "USDT" suffix
-            state.setdefault(symbol, {}).update({
-                "price": float(item["p"]),
-                "funding_rate": float(item["r"]),
-                "next_funding_time": item["T"],  # ms since epoch
-            })
+              symbol = item["s"][:-4]  # remove "USDT" suffix
+              state.setdefault(symbol, {}).update({
+                  "price": float(item["p"]),
+                  "funding_rate": float(item["r"]),
+                  "next_funding_time": item["T"],  # ms since epoch
+              })
 
     except Exception as e:
         print(f"⚠️ Failed to parse message: {e}")
 
 
-async def ping_loop(ws):
-    """Send manual pings every minute to keep connection alive."""
+async def pong_loop(ws):
+    """Send manual pongs every minute to keep connection alive."""
     while True:
         try:
-            await asyncio.sleep(PING_INTERVAL)
-            await ws.ping()
+            await asyncio.sleep(PONG_INTERVAL)
+            await ws.pong()
         except Exception as e:
-            print(f"⚠️ Ping failed: {e}")
+            print(f"⚠️ Pong failed: {e}")
             break
 
 
@@ -94,7 +97,7 @@ async def handle_stream(state):
                 ping_interval=None,  # we manage manually
                 max_size=2**20,
             ) as ws:
-                ping_task = asyncio.create_task(ping_loop(ws))
+                pong_task = asyncio.create_task(pong_loop(ws))
                 async for message in ws:
                     await process_message(message, state)
 
@@ -103,8 +106,8 @@ async def handle_stream(state):
             print(f"Reconnecting in {RECONNECT_DELAY}s...")
             await asyncio.sleep(RECONNECT_DELAY)
         finally:
-            if 'ping_task' in locals():
-                ping_task.cancel()
+            if 'pong_task' in locals():
+                pong_task.cancel()
 
 
 async def asterdex_feed(state):

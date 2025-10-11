@@ -2,7 +2,7 @@ import asyncio
 import aiohttp
 import websockets
 import json
-from datetime import datetime, timedelta, timezone, time
+from datetime import datetime, timedelta, timezone
 
 API_URL = "https://mainnet.zklighter.elliot.ai/api/v1/orderBooks"
 
@@ -22,6 +22,9 @@ market_to_symbol_data = {}
 async def fill_market_to_symbol_data():
     async with aiohttp.ClientSession() as session:
         async with session.get(API_URL) as resp:
+            if resp.status != 200:
+                print("❌ Failed to fetch Lighter market data:", await resp.text())
+                return
             data = await resp.json()
             symbols_data = data.get("order_books")
 
@@ -72,6 +75,10 @@ async def handle_stream(state):
     """Main WebSocket connection handler with reconnect logic."""
     await asyncio.sleep(INITIAL_STREAM_START_DELAY)
     while True:
+        if not market_to_symbol_data:
+            print(f"❌ No Lighter market to symbol data, waiting {UDATE_MARKETS_INTERVAL}s...")
+            await asyncio.sleep(UDATE_MARKETS_INTERVAL)
+            continue
         try:
             async with websockets.connect(
                 WS_URL
@@ -87,7 +94,6 @@ async def handle_stream(state):
             await asyncio.sleep(RECONNECT_DELAY)
 
 async def lighter_feed(state):
-    await fill_market_to_symbol_data()
     await asyncio.gather(
         periodic_market_to_symbol_refresh(),
         handle_stream(state),
