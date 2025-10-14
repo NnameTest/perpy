@@ -135,7 +135,7 @@ def print_diff_table(diff_table):
         print(f"\n{token} (sorted by {sort_by.upper()})")
         headers = ["Feed", "Price", "ΔPrice%", "Funding24h", "ΔFunding%"]
 
-        def format_number(x, precision=2):
+        def format_number(x, precision=4):
             if isinstance(x, (int, float)):
                 return f"{x: .{precision}f}"  # space for positive numbers
             return str(x)
