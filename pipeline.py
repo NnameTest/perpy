@@ -1,6 +1,5 @@
 import os
 import time
-import json
 from collections import defaultdict
 
 import asyncio
@@ -17,6 +16,7 @@ load_dotenv()
 
 START_DELAY=int(os.getenv("START_DELAY"))
 PRINT_INTERVAL=int(os.getenv("PRINT_INTERVAL"))
+CLEAR_STATE_INTERVAL=int(os.getenv("CLEAR_STATE_INTERVAL"))
 PRICE_DIFF_PERCENTAGE_THRESHOLD=float(os.getenv("PRICE_DIFF_PERCENTAGE_THRESHOLD"))
 FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD=float(os.getenv("FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD"))
 FUNDING_NEXT_TIME_TOLERANCE_MINUTES=float(os.getenv("FUNDING_NEXT_TIME_TOLERANCE_MINUTES"))
@@ -53,6 +53,12 @@ async def monitor_24h_funding_rate_diff(state, threshold_percent=0.1):
         else:
             print(f"📊 No tokens with >{threshold_percent}% 24h funding rate difference found.")
 
+async def periodic_clear_state(state):
+    while True:
+        await asyncio.sleep(CLEAR_STATE_INTERVAL)
+        state.clear()
+        print(f"\n🕒 {time.strftime('%Y-%m-%d %H:%M:%S')}")
+        print("State cleared to prevent memory bloat.")
 
 async def main():
     state = defaultdict(dict)
@@ -64,6 +70,7 @@ async def main():
         edgex_feed(state["edgex"]),
         monitor_prices_diff(state, threshold_percent=PRICE_DIFF_PERCENTAGE_THRESHOLD),
         monitor_24h_funding_rate_diff(state, threshold_percent=FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD),
+        periodic_clear_state(state),
     )
 
 if __name__ == "__main__":
