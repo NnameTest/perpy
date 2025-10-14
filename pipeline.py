@@ -56,9 +56,10 @@ async def monitor_24h_funding_rate_diff(state, threshold_percent=0.1):
 async def periodic_clear_state(state):
     while True:
         await asyncio.sleep(CLEAR_STATE_INTERVAL)
-        state.clear()
+        for key in state:
+            state[key].clear()
         print(f"\n🕒 {time.strftime('%Y-%m-%d %H:%M:%S')}")
-        print("State cleared to prevent memory bloat.")
+        print("State sub-dictionaries cleared to prevent memory bloat.")
 
 async def main():
     state = defaultdict(dict)
