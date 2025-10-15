@@ -15,9 +15,14 @@ def prepare_diff_data(raw_data):
     for feed_name, tokens in raw_data.items():
         processed_data[feed_name] = {}
         for symbol, info in tokens.items():
-            price = info.get("price", 0)
-            funding_rate = info.get("funding_rate", 0)
-            interval = info.get("funding_interval_hours", 1)  # avoid division by zero
+            
+            price = info.get("price")
+            funding_rate = info.get("funding_rate")
+            interval = info.get("funding_interval_hours")
+
+            if price is None or funding_rate is None or interval is None or interval == 0:
+                continue
+
             funding24hRate = funding_rate * (24 / interval)
             processed_data[feed_name][symbol] = {
                 "price": price,
