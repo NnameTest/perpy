@@ -9,6 +9,7 @@ from asterdex_feed import asterdex_feed
 from hyperliquid_feed import hyperliquid_feed
 from lighter_feed import lighter_feed
 from edgex_feed import edgex_feed
+from extended_feed import extended_feed
 from diffs import find_funding_diff_table, find_price_diff_table, print_diff_table
 from telegram import send_detailed_diff_telegram_message
 
@@ -69,6 +70,7 @@ async def main():
         hyperliquid_feed(state["hl"]),
         lighter_feed(state["lighter"]),
         edgex_feed(state["edgex"]),
+        extended_feed(state["extended"]),
         monitor_prices_diff(state, threshold_percent=PRICE_DIFF_PERCENTAGE_THRESHOLD),
         monitor_24h_funding_rate_diff(state, threshold_percent=FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD),
         periodic_clear_state(state),
