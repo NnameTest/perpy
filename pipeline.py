@@ -13,6 +13,7 @@ from lighter_feed import lighter_feed
 from edgex_feed import edgex_feed
 from extended_feed import extended_feed
 from mexc_feed import mexc_feed
+from gate_feed import gate_feed
 
 load_dotenv()
 
@@ -73,6 +74,7 @@ async def main():
         edgex_feed(state["edgex"]),
         extended_feed(state["extended"]),
         mexc_feed(state["mexc"]),
+        gate_feed(state["gate"]),
         monitor_prices_diff(state, threshold_percent=PRICE_DIFF_PERCENTAGE_THRESHOLD),
         monitor_24h_funding_rate_diff(state, threshold_percent=FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD),
         periodic_clear_state(state),
