@@ -117,11 +117,11 @@ async def process_message(message, state):
         if "channel" in message and message["channel"] == "push.tickers":
           data = message["data"]
           for item in data:
-              if item["symbol"].endswith("_USDT") and "fairPrice" in item:
+              if item["symbol"].endswith("_USDT") and "lastPrice" in item and item["lastPrice"] > 0:
                   symbol = item["symbol"][:-5]
                   if symbol in state:
                       state[symbol].update({
-                          "price": item["fairPrice"]
+                          "price": item["lastPrice"]
                       })
         else:
             print(f"{PRINT_PREFIX} Not Ticker Message")
