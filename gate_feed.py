@@ -56,7 +56,7 @@ def fill_tokens_data(data, state):
 
         state[symbol].update({
             "price": float(item["last_price"]),
-            "funding_rate": item["funding_rate"],
+            "funding_rate": float(item["funding_rate"]),
             "next_funding_time": item["funding_next_apply"] * 1000,
             "funding_interval_hours": item["funding_interval"] / 3600,
         })
@@ -77,7 +77,7 @@ async def process_message(message, state):
               symbol = item["contract"][:-5]
               if symbol in state:
                   state[symbol].update({
-                      "price": item["last"]
+                      "price": float(item["last"])
                   })
         else:
             print(f"{PRINT_PREFIX} Not Ticker Message")
