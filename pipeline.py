@@ -17,12 +17,23 @@ from gate_feed import gate_feed
 
 load_dotenv()
 
+IS_PRICE_DIFF_ENABLED=int(os.getenv("IS_PRICE_DIFF_ENABLED"))
+IS_FUNDING_DIFF_ENABLED=int(os.getenv("IS_ASTER_ENABLED"))
+
 START_DELAY=int(os.getenv("START_DELAY"))
 PRINT_INTERVAL=int(os.getenv("PRINT_INTERVAL"))
 CLEAR_STATE_INTERVAL=int(os.getenv("CLEAR_STATE_INTERVAL"))
 PRICE_DIFF_PERCENTAGE_THRESHOLD=float(os.getenv("PRICE_DIFF_PERCENTAGE_THRESHOLD"))
 FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD=float(os.getenv("FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD"))
 FUNDING_NEXT_TIME_TOLERANCE_MINUTES=float(os.getenv("FUNDING_NEXT_TIME_TOLERANCE_MINUTES"))
+
+IS_ASTER_ENABLED=int(os.getenv("IS_ASTER_ENABLED"))
+IS_EDGEX_ENABLED=int(os.getenv("IS_EDGEX_ENABLED"))
+IS_LIGHTER_ENABLED=int(os.getenv("IS_LIGHTER_ENABLED"))
+IS_HL_ENABLED=int(os.getenv("IS_HL_ENABLED"))
+IS_EXTENDED_ENABLED=int(os.getenv("IS_EXTENDED_ENABLED"))
+IS_GATE_ENABLED=int(os.getenv("IS_GATE_ENABLED"))
+IS_MEXC_ENABLED=int(os.getenv("IS_MEXC_ENABLED"))
 
 async def monitor_prices_diff(state, threshold_percent):
     """Print tokens with significant price differences periodically."""
@@ -67,18 +78,33 @@ async def periodic_clear_state(state):
 async def main():
     state = defaultdict(dict)
 
-    await asyncio.gather(
-        asterdex_feed(state["aster"]),
-        hyperliquid_feed(state["hl"]),
-        lighter_feed(state["lighter"]),
-        edgex_feed(state["edgex"]),
-        extended_feed(state["extended"]),
-        mexc_feed(state["mexc"]),
-        gate_feed(state["gate"]),
-        monitor_prices_diff(state, threshold_percent=PRICE_DIFF_PERCENTAGE_THRESHOLD),
-        monitor_24h_funding_rate_diff(state, threshold_percent=FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD),
+    tasks = []
+
+    if IS_ASTER_ENABLED:
+        tasks.append(asterdex_feed(state["aster"]))
+    if IS_HL_ENABLED:
+        tasks.append(hyperliquid_feed(state["hl"]))
+    if IS_LIGHTER_ENABLED:
+        tasks.append(lighter_feed(state["lighter"]))
+    if IS_EDGEX_ENABLED:
+        tasks.append(edgex_feed(state["edgex"]))
+    if IS_EXTENDED_ENABLED:
+        tasks.append(extended_feed(state["extended"]))
+    if IS_MEXC_ENABLED:
+        tasks.append(mexc_feed(state["mexc"]))
+    if IS_GATE_ENABLED:
+        tasks.append(gate_feed(state["gate"]))
+
+    if IS_PRICE_DIFF_ENABLED:
+        tasks.append(monitor_prices_diff(state, threshold_percent=PRICE_DIFF_PERCENTAGE_THRESHOLD))
+    if IS_FUNDING_DIFF_ENABLED:
+        tasks.append(monitor_24h_funding_rate_diff(state, threshold_percent=FUNDING_24H_DIFF_PERCENTAGE_THRESHOLD))
+    
+    tasks += [
         periodic_clear_state(state),
-    )
+    ]
+
+    await asyncio.gather(*tasks)
 
 if __name__ == "__main__":
     asyncio.run(main())
